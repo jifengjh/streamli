@@ -10,6 +10,9 @@ on:
 jobs:
   wakeup:
     runs-on: ubuntu-latest
+    # 关键修改 1：增加内容写入权限，否则无法提交代码
+    permissions:
+      contents: write
 
     steps:
       - name: 检查触发事件
@@ -45,3 +48,14 @@ jobs:
           STREAMLIT_APP_URL: ${{ vars.STREAMLIT_APP_URL }}
         run: |
           python keep/streamlit-keep.py
+
+      # 关键修改 2：增加自动提交步骤，防止 GitHub 认为仓库不活跃
+      - name: 自动更新活跃记录 (Keepalive Commit)
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          echo "Last active: $(date)" > keepalive.txt
+          git add keepalive.txt
+          # [skip ci] 确保这次提交不会再次触发该工作流，避免无限循环
+          git commit -m "chore: keepalive update [skip ci]" || exit 0
+          git push
